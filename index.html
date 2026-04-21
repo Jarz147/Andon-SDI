@@ -1,52 +1,33 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Andon Monitor — SDI</title>
+    <title>Andon Dashboard MTC — Cloud Connected</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
-<body>
-    <div class="background-bg"></div>
-    <div class="container">
-        <header>
-            <h1>Andon MTC — Real-time</h1>
-            <div id="status-badge" class="badge disconnected">Disconnected</div>
-        </header>
 
-        <section class="lines-section card">
-            <h3 class="section-title">Status per line (payload ON / OFF)</h3>
-            <div class="lines-grid" id="lines-grid">
-                <div class="line-card" data-line="1"><span class="line-name">Assy 1</span><span class="line-state off" id="state-1">OFF</span></div>
-                <div class="line-card" data-line="2"><span class="line-name">Assy 2</span><span class="line-state off" id="state-2">OFF</span></div>
-                <div class="line-card" data-line="3"><span class="line-name">Assy 3</span><span class="line-state off" id="state-3">OFF</span></div>
-                <div class="line-card" data-line="4"><span class="line-name">Assy 4</span><span class="line-state off" id="state-4">OFF</span></div>
-                <div class="line-card" data-line="5"><span class="line-name">Assy 5</span><span class="line-state off" id="state-5">OFF</span></div>
-                <div class="line-card" data-line="6"><span class="line-name">Assy 6</span><span class="line-state off" id="state-6">OFF</span></div>
-                <div class="line-card" data-line="7"><span class="line-name">Assy 7</span><span class="line-state off" id="state-7">OFF</span></div>
-                <div class="line-card" data-line="8"><span class="line-name">Assy 8</span><span class="line-state off" id="state-8">OFF</span></div>
-                <div class="line-card" data-line="9"><span class="line-name">Assy 9</span><span class="line-state off" id="state-9">OFF</span></div>
-                <div class="line-card" data-line="bending"><span class="line-name">Bending</span><span class="line-state off" id="state-bending">OFF</span></div>
+<body class="andon-body text-white">
+    <header class="app-header-stack bg-zinc-900">
+        <div class="app-header border-b border-zinc-800 relative w-full">
+            <div class="flex flex-col gap-2 min-w-0 flex-1 w-full sm:pr-48">
+                <span class="app-title text-blue-500 tracking-tighter uppercase">ANDON SYSTEM <span class="text-white">MTC</span></span>
+                <p class="text-zinc-500 font-mono leading-tight" style="font-size: clamp(0.68rem, 2vw, 0.92rem); font-weight: 400 !important;">Broker 192.168.210.241:8083 · data Node-RED · semua device</p>
             </div>
-        </section>
-
-        <main class="dashboard-grid">
-            <div class="card">
-                <h3>Topik terakhir</h3>
-                <p id="topic-display" class="mono">-</p>
-            </div>
-            <div class="card">
-                <h3>Payload terakhir</h3>
-                <p id="message-display">Menunggu data…</p>
-            </div>
-        </main>
-
-        <div class="log-section card">
-            <h3>Log koneksi</h3>
-            <div id="logs"></div>
+            <div id="conn-status" class="app-status text-zinc-500 uppercase shrink-0 w-full sm:w-auto text-left sm:text-right sm:absolute sm:top-1/2 sm:-translate-y-1/2 sm:right-4 sm:top-1/2">INITIALIZING...</div>
         </div>
+        <div id="running-text-wrap" class="running-text-wrap px-2" role="region" aria-label="Info berjalan">
+            <div class="running-text-inner"></div>
+        </div>
+    </header>
+
+    <div id="master-container">
+        <div class="dashboard-grid" id="dashboard-grid"></div>
     </div>
+
     <script src="script.js"></script>
 </body>
+
 </html>
