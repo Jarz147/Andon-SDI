@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Industrial Monitoring Dashboard</title>
+    <title>Andon Monitor — SDI</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
@@ -11,23 +11,39 @@
     <div class="background-bg"></div>
     <div class="container">
         <header>
-            <h1>Real-time Monitor</h1>
+            <h1>Andon MTC — Real-time</h1>
             <div id="status-badge" class="badge disconnected">Disconnected</div>
         </header>
 
+        <section class="lines-section card">
+            <h3 class="section-title">Status per line (payload ON / OFF)</h3>
+            <div class="lines-grid" id="lines-grid">
+                <div class="line-card" data-line="1"><span class="line-name">Assy 1</span><span class="line-state off" id="state-1">OFF</span></div>
+                <div class="line-card" data-line="2"><span class="line-name">Assy 2</span><span class="line-state off" id="state-2">OFF</span></div>
+                <div class="line-card" data-line="3"><span class="line-name">Assy 3</span><span class="line-state off" id="state-3">OFF</span></div>
+                <div class="line-card" data-line="4"><span class="line-name">Assy 4</span><span class="line-state off" id="state-4">OFF</span></div>
+                <div class="line-card" data-line="5"><span class="line-name">Assy 5</span><span class="line-state off" id="state-5">OFF</span></div>
+                <div class="line-card" data-line="6"><span class="line-name">Assy 6</span><span class="line-state off" id="state-6">OFF</span></div>
+                <div class="line-card" data-line="7"><span class="line-name">Assy 7</span><span class="line-state off" id="state-7">OFF</span></div>
+                <div class="line-card" data-line="8"><span class="line-name">Assy 8</span><span class="line-state off" id="state-8">OFF</span></div>
+                <div class="line-card" data-line="9"><span class="line-name">Assy 9</span><span class="line-state off" id="state-9">OFF</span></div>
+                <div class="line-card" data-line="bending"><span class="line-name">Bending</span><span class="line-state off" id="state-bending">OFF</span></div>
+            </div>
+        </section>
+
         <main class="dashboard-grid">
             <div class="card">
-                <h3>Topic</h3>
-                <p id="topic-display">-</p>
+                <h3>Topik terakhir</h3>
+                <p id="topic-display" class="mono">-</p>
             </div>
             <div class="card">
-                <h3>Latest Message</h3>
-                <p id="message-display">Waiting for data...</p>
+                <h3>Payload terakhir</h3>
+                <p id="message-display">Menunggu data…</p>
             </div>
         </main>
-        
+
         <div class="log-section card">
-            <h3>Connection Logs</h3>
+            <h3>Log koneksi</h3>
             <div id="logs"></div>
         </div>
     </div>
