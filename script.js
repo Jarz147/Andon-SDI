@@ -5,7 +5,7 @@ const options = {
     port: 8084,
     path: '/mqtt',
     username: 'Jarz147',
-    password: 'Sankei2017',
+    password: 'Sankei2022!',
     clientId: 'web_client_' + Math.random().toString(16).substr(2, 8)
 };
 
