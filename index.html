@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Industrial Monitoring Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+    <div class="background-bg"></div>
+    <div class="container">
+        <header>
+            <h1>Real-time Monitor</h1>
+            <div id="status-badge" class="badge disconnected">Disconnected</div>
+        </header>
+
+        <main class="dashboard-grid">
+            <div class="card">
+                <h3>Topic</h3>
+                <p id="topic-display">-</p>
+            </div>
+            <div class="card">
+                <h3>Latest Message</h3>
+                <p id="message-display">Waiting for data...</p>
+            </div>
+        </main>
+        
+        <div class="log-section card">
+            <h3>Connection Logs</h3>
+            <div id="logs"></div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
