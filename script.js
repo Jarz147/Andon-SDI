@@ -26,6 +26,37 @@ const CONFIG = {
     }
 };
 
+const LINE_KEYS = ['assy1', 'assy2', 'assy3', 'assy4', 'assy5', 'assy6', 'assy7', 'assy8', 'assy9', 'bending'];
+const lineStates = {};
+
+function formatTime(totalSec) {
+    const safe = Math.max(0, Number(totalSec) || 0);
+    const h = Math.floor(safe / 3600).toString().padStart(2, '0');
+    const m = Math.floor((safe % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(safe % 60).toString().padStart(2, '0');
+    return h + ':' + m + ':' + s;
+}
+
+function updateTimerEl(prefix) {
+    const timerEl = document.getElementById('timer-' + prefix);
+    if (!timerEl) return;
+    const state = lineStates[prefix] || { on: false, startMs: 0 };
+    if (!state.on) {
+        timerEl.innerText = '00:00:00';
+        timerEl.className = 'text-base sm:text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-digital text-zinc-600 tabular-nums leading-none mt-1 text-center';
+        return;
+    }
+    const sec = Math.floor((Date.now() - state.startMs) / 1000);
+    timerEl.innerText = formatTime(sec);
+    timerEl.className = 'text-base sm:text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-digital text-blue-400 tabular-nums leading-none mt-1 text-center';
+}
+
+function refreshAllTimers() {
+    for (let i = 0; i < LINE_KEYS.length; i++) {
+        updateTimerEl(LINE_KEYS[i]);
+    }
+}
+
 function initRunningText() {
     const wrap = document.getElementById('running-text-wrap');
     const inner = wrap && wrap.querySelector('.running-text-inner');
@@ -67,6 +98,13 @@ function applyLampState(prefix, isOn) {
             ? 'text-xs sm:text-sm xl:text-base text-blue-400 uppercase mt-1'
             : 'text-xs sm:text-sm xl:text-base text-zinc-600 uppercase mt-1';
     }
+    const prev = lineStates[prefix] || { on: false, startMs: 0 };
+    if (isOn && !prev.on) {
+        lineStates[prefix] = { on: true, startMs: Date.now() };
+    } else if (!isOn) {
+        lineStates[prefix] = { on: false, startMs: 0 };
+    }
+    updateTimerEl(prefix);
 }
 
 function lineKeyFromTopic(topic) {
@@ -146,6 +184,8 @@ function buildDashboardCards() {
             '<span class="xl:hidden">ASSY ' + i + '</span><span class="hidden xl:inline">ANDON LINE ASSY ' + i + '</span>' +
             '</span>' +
             '<div id="lamp-assy' + i + '" class="lamp lamp-off w-full shrink-0"></div>' +
+            '<p class="text-[9px] sm:text-[10px] xl:text-xs text-blue-500 uppercase mt-1 text-center">Downtime</p>' +
+            '<div id="timer-assy' + i + '" class="text-base sm:text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-digital text-zinc-600 tabular-nums leading-none mt-1 text-center">00:00:00</div>' +
             '<p id="state-assy' + i + '" class="text-xs sm:text-sm xl:text-base text-zinc-600 uppercase mt-1 text-center">OFF</p>' +
             '</div>';
     }
@@ -154,6 +194,8 @@ function buildDashboardCards() {
         '<span class="xl:hidden">BENDING</span><span class="hidden xl:inline">ANDON LINE BENDING</span>' +
         '</span>' +
         '<div id="lamp-bending" class="lamp lamp-off w-full shrink-0"></div>' +
+        '<p class="text-[9px] sm:text-[10px] xl:text-xs text-blue-500 uppercase mt-1 text-center">Downtime</p>' +
+        '<div id="timer-bending" class="text-base sm:text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-digital text-zinc-600 tabular-nums leading-none mt-1 text-center">00:00:00</div>' +
         '<p id="state-bending" class="text-xs sm:text-sm xl:text-base text-zinc-600 uppercase mt-1 text-center">OFF</p>' +
         '</div>';
     grid.innerHTML = html;
@@ -161,6 +203,8 @@ function buildDashboardCards() {
 
 document.addEventListener('DOMContentLoaded', function () {
     buildDashboardCards();
+    for (let i = 0; i < LINE_KEYS.length; i++) lineStates[LINE_KEYS[i]] = { on: false, startMs: 0 };
+    setInterval(refreshAllTimers, 1000);
     initRunningText();
     connectMqtt();
 });
