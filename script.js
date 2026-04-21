@@ -1,93 +1,30 @@
-/**
- * Dashboard memanggil endpoint yang sama dengan flow Node-RED:
- * - GET /andon-mtc          → halaman (template)
- * - GET /andon-mtc/api/state → JSON { shiftKey, lines }
- * URL API dihitung relatif ke lokasi halaman (new URL('api/state', ...)).
- */
-
 const CONFIG = {
+    mqtt: {
+        host: 'x914fb68.ala.eu-central-1.emqxsl.com',
+        port: 8084,
+        path: '/mqtt',
+        username: 'Jarz147',
+        password: 'Sankei2022!',
+        topics: [
+            '/assy1/andon/mtc',
+            '/assy2/andon/mtc',
+            '/assy3/andon/mtc',
+            '/assy4/andon/mtc',
+            '/assy5/andon/mtc',
+            '/assy6/andon/mtc',
+            '/assy7/andon/mtc',
+            '/assy8/andon/mtc',
+            '/assy9/andon/mtc',
+            '/bending/andon/mtc',
+            '/bending/+/andon/mtc'
+        ]
+    },
     runningText: {
         enabled: true,
-        text: 'ANDON MTC — monitoring downtime & akumulasi real-time — data terpusat Node-RED — PT Sankei Dharma Indonesia',
+        text: 'ANDON MTC — indikator lampu real-time ON/OFF — sumber data MQTT EMQX',
         speedSec: 40
-    },
-    soundOnAndon: true
+    }
 };
-
-var soundLinePrevOn = {};
-var soundPollInitialized = false;
-
-function getApiStateUrl() {
-    if (typeof window.__ANDON_API_STATE__ === 'string' && window.__ANDON_API_STATE__.trim()) {
-        return window.__ANDON_API_STATE__.trim();
-    }
-    return String(new URL('api/state', window.location.href));
-}
-
-const API_STATE_URL = getApiStateUrl();
-
-function unlockAndonAudio() {
-    try {
-        var AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        if (!window.__andonAudioCtx) window.__andonAudioCtx = new AC();
-        var ctx = window.__andonAudioCtx;
-        if (ctx.state === 'suspended') ctx.resume();
-    } catch (e) {}
-}
-function andonAudioUnlock() {
-    unlockAndonAudio();
-    document.removeEventListener('click', andonAudioUnlock, true);
-    document.removeEventListener('touchstart', andonAudioUnlock, true);
-}
-document.addEventListener('click', andonAudioUnlock, true);
-document.addEventListener('touchstart', andonAudioUnlock, { capture: true, passive: true });
-
-function playAndonOnSound() {
-    if (!CONFIG.soundOnAndon) return;
-    try {
-        var AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        if (!window.__andonAudioCtx) window.__andonAudioCtx = new AC();
-        var ctx = window.__andonAudioCtx;
-        if (ctx.state === 'suspended') ctx.resume();
-        var t0 = ctx.currentTime;
-        function beep(freq, dur, delay) {
-            var o = ctx.createOscillator();
-            var g = ctx.createGain();
-            o.type = 'sine';
-            o.frequency.setValueAtTime(freq, t0 + delay);
-            g.gain.setValueAtTime(0.0001, t0 + delay);
-            g.gain.exponentialRampToValueAtTime(0.14, t0 + delay + 0.02);
-            g.gain.exponentialRampToValueAtTime(0.0001, t0 + delay + dur);
-            o.connect(g);
-            g.connect(ctx.destination);
-            o.start(t0 + delay);
-            o.stop(t0 + delay + dur);
-        }
-        beep(880, 0.2, 0);
-        beep(1100, 0.18, 0.22);
-    } catch (e) {}
-}
-
-function detectAndonOnSound(data) {
-    if (!data || !data.lines) return;
-    var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'bending'];
-    var anyNew = false;
-    for (var i = 0; i < keys.length; i++) {
-        var k = keys[i];
-        var line = data.lines[k];
-        var nowOn = !!(line && line.on);
-        if (soundPollInitialized && nowOn && !soundLinePrevOn[k]) anyNew = true;
-    }
-    if (anyNew) playAndonOnSound();
-    for (var j = 0; j < keys.length; j++) {
-        var k2 = keys[j];
-        var ln = data.lines[k2];
-        soundLinePrevOn[k2] = !!(ln && ln.on);
-    }
-    soundPollInitialized = true;
-}
 
 function initRunningText() {
     const wrap = document.getElementById('running-text-wrap');
@@ -113,86 +50,90 @@ function initRunningText() {
     inner.appendChild(seg.cloneNode(true));
 }
 
-function pad2(n) { return String(n).padStart(2, '0'); }
-
-function formatTime(s) {
-    const h = Math.floor(s / 3600).toString().padStart(2, '0');
-    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
-    const sec = (s % 60).toString().padStart(2, '0');
-    return h + ':' + m + ':' + sec;
-}
-
-function formatLogDateTime(ms) {
-    const d = new Date(ms);
-    return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + ' ' +
-        pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
-}
-
-function renderLogEl(el, rows) {
-    if (!el) return;
-    if (!rows || rows.length === 0) {
-        el.innerHTML = '<div class="text-zinc-600 italic truncate">—</div>';
-        return;
-    }
-    var lim = 3;
-    var short = rows.slice(0, lim);
-    el.innerHTML = short.map(function (entry) {
-        return '<div class="py-px border-b border-zinc-800/40 last:border-0 truncate">' +
-            formatLogDateTime(entry.start).split(' ').pop() + '\u2192' + formatLogDateTime(entry.end).split(' ').pop() +
-            ' ' + formatTime(entry.sec) + '</div>';
-    }).join('');
-}
-
-function applyLineCard(line, prefix) {
-    if (!line) return;
+function applyLampState(prefix, isOn) {
     const lamp = document.getElementById('lamp-' + prefix);
-    const timerEl = document.getElementById('timer-' + prefix);
-    const dailyEl = document.getElementById('daily-' + prefix);
-    const freqEl = document.getElementById('freq-' + prefix);
-    const logEl = document.getElementById('log-' + prefix);
-    if (!lamp || !timerEl || !dailyEl || !logEl) return;
-    if (line.on) {
+    const stateEl = document.getElementById('state-' + prefix);
+    if (!lamp) return;
+    if (isOn) {
         lamp.classList.remove('lamp-off');
         lamp.classList.add('lamp-on');
-        timerEl.classList.remove('text-zinc-600');
-        timerEl.classList.add('text-blue-400');
     } else {
         lamp.classList.remove('lamp-on');
         lamp.classList.add('lamp-off');
-        timerEl.classList.remove('text-blue-400');
-        timerEl.classList.add('text-zinc-600');
     }
-    timerEl.innerText = formatTime(line.sessionSeconds);
-    const dailyTotal = line.dailySeconds + (line.on ? line.sessionSeconds : 0);
-    dailyEl.innerText = formatTime(dailyTotal);
-    if (freqEl) freqEl.innerText = String(line.frequency != null ? line.frequency : 0);
-    renderLogEl(logEl, line.log || []);
+    if (stateEl) {
+        stateEl.innerText = isOn ? 'ON' : 'OFF';
+        stateEl.className = isOn
+            ? 'text-xs sm:text-sm xl:text-base text-blue-400 uppercase mt-1'
+            : 'text-xs sm:text-sm xl:text-base text-zinc-600 uppercase mt-1';
+    }
 }
 
-function applyServerState(data) {
-    if (!data || !data.lines) return;
-    detectAndonOnSound(data);
-    for (let i = 1; i <= 9; i++) {
-        applyLineCard(data.lines[String(i)], 'assy' + i);
-    }
-    applyLineCard(data.lines.bending, 'bending');
+function lineKeyFromTopic(topic) {
+    const t = String(topic || '').replace(/^\/+/, '');
+    const assy = t.match(/^assy(\d+)\/andon\/mtc$/i);
+    if (assy) return 'assy' + assy[1];
+    if (/^bending\/andon\/mtc$/i.test(t) || /^bending\/assy\d+\/andon\/mtc$/i.test(t)) return 'bending';
+    return '';
 }
 
-async function pullState() {
-    try {
-        const r = await fetch(API_STATE_URL, { cache: 'no-store', credentials: 'same-origin' });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        const data = await r.json();
-        applyServerState(data);
-        var el = document.getElementById('conn-status');
-        el.innerText = 'ONLINE · NODE-RED';
-        el.className = 'app-status text-green-500 uppercase shrink-0 w-full sm:w-auto text-left sm:text-right sm:absolute sm:top-1/2 sm:-translate-y-1/2 sm:right-4';
-    } catch (e) {
-        const msg = (e && e.message) ? String(e.message) : 'fetch gagal';
-        var el = document.getElementById('conn-status');
-        el.innerText = 'ERROR: ' + msg;
-        el.className = 'app-status text-red-500 uppercase shrink-0 w-full sm:w-auto text-left sm:text-right sm:absolute sm:top-1/2 sm:-translate-y-1/2 sm:right-4 max-w-[min(100%,320px)] break-words';
+function connectMqtt() {
+    if (typeof mqtt === 'undefined') {
+        const missing = document.getElementById('conn-status');
+        if (missing) missing.innerText = 'ERROR: MQTT LIB NOT LOADED';
+        return;
     }
+    const connectUrl = 'wss://' + CONFIG.mqtt.host + ':' + CONFIG.mqtt.port + CONFIG.mqtt.path;
+    const options = {
+        keepalive: 60,
+        clientId: 'web_andon_public_' + Math.random().toString(16).slice(2, 10),
+        protocolId: 'MQTT',
+        protocolVersion: 4,
+        clean: true,
+        reconnectPeriod: 2000,
+        connectTimeout: 30 * 1000,
+        username: CONFIG.mqtt.username,
+        password: CONFIG.mqtt.password
+    };
+
+    const client = mqtt.connect(connectUrl, options);
+
+    client.on('connect', function () {
+        const ok = document.getElementById('conn-status');
+        if (ok) {
+            ok.innerText = 'ONLINE · MQTT';
+            ok.className = 'app-status text-green-500 uppercase shrink-0 w-full sm:w-auto text-left sm:text-right sm:absolute sm:top-1/2 sm:-translate-y-1/2 sm:right-4';
+        }
+        client.subscribe(CONFIG.mqtt.topics, { qos: 0 });
+    });
+
+    client.on('message', function (topic, payload) {
+        const key = lineKeyFromTopic(topic);
+        if (!key) return;
+        const raw = (payload && payload.toString ? payload.toString() : String(payload)).trim().toUpperCase();
+        applyLampState(key, raw === 'ON');
+    });
+
+    client.on('reconnect', function () {
+        const wait = document.getElementById('conn-status');
+        if (wait) wait.innerText = 'RECONNECTING...';
+    });
+
+    client.on('error', function (err) {
+        const fail = document.getElementById('conn-status');
+        if (fail) {
+            fail.innerText = 'ERROR: ' + (err && err.message ? err.message : 'mqtt');
+            fail.className = 'app-status text-red-500 uppercase shrink-0 w-full sm:w-auto text-left sm:text-right sm:absolute sm:top-1/2 sm:-translate-y-1/2 sm:right-4';
+        }
+    });
+
+    client.on('close', function () {
+        const close = document.getElementById('conn-status');
+        if (close) {
+            close.innerText = 'DISCONNECTED';
+            close.className = 'app-status text-red-500 uppercase shrink-0 w-full sm:w-auto text-left sm:text-right sm:absolute sm:top-1/2 sm:-translate-y-1/2 sm:right-4';
+        }
+    });
 }
 
 function buildDashboardCards() {
@@ -200,42 +141,20 @@ function buildDashboardCards() {
     if (!grid) return;
     var html = '';
     for (let i = 1; i <= 9; i++) {
-        html += '<div class="andon-card flex flex-col items-stretch shadow-lg w-full h-full overflow-hidden p-1 sm:p-1.5 xl:p-2 2xl:p-3 gap-0.5 xl:gap-1">' +
+        html += '<div class="andon-card flex flex-col items-stretch justify-between shadow-lg w-full h-full overflow-hidden p-2 xl:p-3">' +
             '<span class="text-xs sm:text-sm xl:text-base 2xl:text-lg text-center shrink-0 leading-tight truncate text-zinc-200">' +
             '<span class="xl:hidden">ASSY ' + i + '</span><span class="hidden xl:inline">ANDON LINE ASSY ' + i + '</span>' +
             '</span>' +
             '<div id="lamp-assy' + i + '" class="lamp lamp-off w-full shrink-0"></div>' +
-            '<div class="text-center w-full min-w-0 shrink-0">' +
-            '<div id="timer-assy' + i + '" class="text-base sm:text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-digital text-zinc-600 tabular-nums leading-none">00:00:00</div>' +
-            '<p class="text-[9px] sm:text-[10px] xl:text-xs text-blue-500 uppercase mt-0.5 xl:mt-1" style="font-weight: 700 !important;">Downtime</p>' +
-            '<div id="daily-assy' + i + '" class="text-sm sm:text-base xl:text-lg 2xl:text-xl font-digital text-amber-500 mt-0.5 xl:mt-1 tabular-nums leading-none">00:00:00</div>' +
-            '<p class="text-[9px] sm:text-[10px] xl:text-xs text-amber-600 uppercase mt-0.5 xl:mt-1" style="font-weight: 700 !important;">Akumulasi / hari (06:00)</p>' +
-            '<div id="freq-assy' + i + '" class="text-sm sm:text-base xl:text-lg 2xl:text-xl font-digital text-emerald-400 mt-0.5 xl:mt-1 tabular-nums leading-none">0</div>' +
-            '<p class="text-[9px] sm:text-[10px] xl:text-xs text-emerald-500/90 uppercase mt-0.5 xl:mt-1" style="font-weight: 700 !important;">Frekuensi andon (06:00)</p>' +
-            '</div>' +
-            '<div class="w-full flex flex-col flex-shrink-0 mt-0.5 xl:mt-1">' +
-            '<p class="text-[9px] sm:text-[10px] xl:text-xs text-zinc-500 uppercase mb-0.5 xl:mb-1 text-left shrink-0" style="font-weight: 700 !important;">Log downtime</p>' +
-            '<div id="log-assy' + i + '" class="log-scroll rounded border border-zinc-800 bg-black/50 px-1 py-0.5 xl:px-1.5 xl:py-1 text-left text-[9px] sm:text-[10px] xl:text-xs 2xl:text-sm font-mono text-zinc-400 leading-tight break-words"></div>' +
-            '</div>' +
+            '<p id="state-assy' + i + '" class="text-xs sm:text-sm xl:text-base text-zinc-600 uppercase mt-1 text-center">OFF</p>' +
             '</div>';
     }
-    html += '<div class="andon-card flex flex-col items-stretch shadow-lg w-full h-full overflow-hidden p-1 sm:p-1.5 xl:p-2 2xl:p-3 gap-0.5 xl:gap-1 border-amber-900/40">' +
+    html += '<div class="andon-card flex flex-col items-stretch justify-between shadow-lg w-full h-full overflow-hidden p-2 xl:p-3 border-amber-900/40">' +
         '<span class="text-xs sm:text-sm xl:text-base 2xl:text-lg text-center shrink-0 leading-tight truncate text-amber-200">' +
         '<span class="xl:hidden">BENDING</span><span class="hidden xl:inline">ANDON LINE BENDING</span>' +
         '</span>' +
         '<div id="lamp-bending" class="lamp lamp-off w-full shrink-0"></div>' +
-        '<div class="text-center w-full min-w-0 shrink-0">' +
-        '<div id="timer-bending" class="text-base sm:text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-digital text-zinc-600 tabular-nums leading-none">00:00:00</div>' +
-        '<p class="text-[9px] sm:text-[10px] xl:text-xs text-blue-500 uppercase mt-0.5 xl:mt-1" style="font-weight: 700 !important;">Downtime</p>' +
-        '<div id="daily-bending" class="text-sm sm:text-base xl:text-lg 2xl:text-xl font-digital text-amber-500 mt-0.5 xl:mt-1 tabular-nums leading-none">00:00:00</div>' +
-        '<p class="text-[9px] sm:text-[10px] xl:text-xs text-amber-600 uppercase mt-0.5 xl:mt-1" style="font-weight: 700 !important;">Akumulasi / hari (06:00)</p>' +
-        '<div id="freq-bending" class="text-sm sm:text-base xl:text-lg 2xl:text-xl font-digital text-emerald-400 mt-0.5 xl:mt-1 tabular-nums leading-none">0</div>' +
-        '<p class="text-[9px] sm:text-[10px] xl:text-xs text-emerald-500/90 uppercase mt-0.5 xl:mt-1" style="font-weight: 700 !important;">Frekuensi andon (06:00)</p>' +
-        '</div>' +
-        '<div class="w-full flex flex-col flex-shrink-0 mt-0.5 xl:mt-1">' +
-        '<p class="text-[9px] sm:text-[10px] xl:text-xs text-zinc-500 uppercase mb-0.5 xl:mb-1 text-left shrink-0" style="font-weight: 700 !important;">Log downtime</p>' +
-        '<div id="log-bending" class="log-scroll rounded border border-zinc-800 bg-black/50 px-1 py-0.5 xl:px-1.5 xl:py-1 text-left text-[9px] sm:text-[10px] xl:text-xs 2xl:text-sm font-mono text-zinc-400 leading-tight break-words"></div>' +
-        '</div>' +
+        '<p id="state-bending" class="text-xs sm:text-sm xl:text-base text-zinc-600 uppercase mt-1 text-center">OFF</p>' +
         '</div>';
     grid.innerHTML = html;
 }
@@ -243,6 +162,5 @@ function buildDashboardCards() {
 document.addEventListener('DOMContentLoaded', function () {
     buildDashboardCards();
     initRunningText();
-    setInterval(pullState, 1000);
-    pullState();
+    connectMqtt();
 });
