@@ -1,90 +1,217 @@
-* {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+.andon-body {
     margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-body {
-    background: #0f172a; /* Dark background */
-    color: white;
-    height: 100vh;
-    overflow: hidden;
+    background-color: #000;
+    font-family: 'Inter', system-ui, sans-serif;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
+    min-height: 100dvh;
 }
 
-/* Background ornament */
-.background-bg {
-    position: absolute;
-    width: 300px;
-    height: 300px;
-    background: linear-gradient(135deg, #38bdf8, #818cf8);
-    filter: blur(80px);
-    z-index: -1;
-    border-radius: 50%;
+@media (min-width: 769px) {
+    .andon-body {
+        max-height: 100dvh;
+        overflow: hidden;
+    }
 }
 
-.container {
-    width: 90%;
-    max-width: 800px;
-    background: rgba(255, 255, 255, 0.05); /* Transparan */
-    backdrop-filter: blur(15px); /* Efek blur kaca */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+@media (max-width: 768px) {
+    .andon-body {
+        height: auto;
+        min-height: 100dvh;
+        max-height: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
 }
 
-header {
+.andon-body * {
+    font-weight: 900 !important;
+    letter-spacing: -0.04em;
+}
+
+.font-digital {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+}
+
+.app-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    gap: 0.5rem 1rem;
+    padding: 0.5rem clamp(0.75rem, 3vw, 1.25rem);
+    flex-shrink: 0;
 }
 
-.badge {
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: bold;
+.app-title {
+    font-size: clamp(1.05rem, 3.2vw, 1.75rem);
 }
 
-.connected { background: #22c55e; }
-.disconnected { background: #ef4444; }
+.app-status {
+    font-size: clamp(0.72rem, 2.6vw, 1.05rem);
+}
+
+.app-header-stack {
+    flex-shrink: 0;
+    border-bottom: 1px solid #27272a;
+}
+
+.running-text-wrap {
+    overflow: hidden;
+    background: #0a0a0a;
+    border-top: 1px solid #1f1f23;
+    min-height: 2rem;
+    display: flex;
+    align-items: center;
+}
+
+.running-text-wrap.is-hidden {
+    display: none;
+}
+
+.running-text-inner {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    width: max-content;
+    animation: running-text-scroll linear infinite;
+    will-change: transform;
+}
+
+.running-text-seg {
+    flex-shrink: 0;
+    padding-right: 4rem;
+    font-size: clamp(0.75rem, 2.1vw, 0.95rem);
+    color: #a1a1aa;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+@keyframes running-text-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .running-text-inner {
+        animation: none;
+        justify-content: center;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .running-text-seg {
+        padding-right: 1rem;
+        white-space: normal;
+        text-align: center;
+    }
+}
+
+#master-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: clamp(6px, 1vw, 12px);
+    gap: clamp(6px, 1vh, 12px);
+}
+
+#master-container > .dashboard-grid {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.lamp {
+    transition: all 0.4s ease;
+    border-radius: 0.5rem;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: clamp(3rem, 10vmin, 6rem);
+    max-height: none;
+}
+@media (min-width: 640px) {
+    .lamp {
+        min-height: clamp(3.25rem, 11vmin, 7rem);
+        border-radius: 0.65rem;
+    }
+}
+@media (min-width: 1280px) {
+    .lamp {
+        min-height: clamp(4rem, 14vmin, 9rem);
+        border-radius: 0.85rem;
+    }
+}
+@media (min-width: 1536px) {
+    .lamp { min-height: clamp(4.5rem, 15vmin, 10rem); }
+}
+
+.lamp-on {
+    background-color: #0088ff;
+    box-shadow: 0 0 40px #0066ff, inset 0 0 16px #003366;
+    animation: blink-blue 1.2s infinite;
+}
+
+.lamp-off {
+    background-color: #0a0a0a;
+    box-shadow: inset 0 0 12px #000;
+    border: 1px solid #1a1a1a;
+}
+
+@keyframes blink-blue {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.75; transform: scale(1.02); }
+}
+
+.log-scroll::-webkit-scrollbar { width: 4px; }
+.log-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+.log-scroll {
+    flex: 0 0 auto !important;
+    line-height: 1.35;
+    max-height: calc(3 * 1.35em);
+    min-height: calc(3 * 1.35em);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
 
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
+    gap: 0.35rem;
+    min-height: 0;
+    flex: 1;
+    align-content: stretch;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(10, minmax(0, 1fr));
+}
+@media (min-width: 640px) and (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: repeat(5, minmax(0, 1fr));
+    }
+}
+@media (min-width: 769px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-rows: repeat(2, minmax(0, 1fr));
+        grid-auto-flow: row;
+    }
+}
+@media (min-width: 1280px) {
+    .dashboard-grid {
+        gap: 0.65rem;
+    }
+}
+@media (min-width: 1536px) {
+    .dashboard-grid { gap: 0.85rem; }
 }
 
-.card {
-    background: rgba(255, 255, 255, 0.03);
-    padding: 1.5rem;
-    border-radius: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-h3 {
-    font-size: 0.9rem;
-    color: #94a3b8;
-    margin-bottom: 10px;
-}
-
-#message-display {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #38bdf8;
-}
-
-#logs {
-    height: 100px;
-    overflow-y: auto;
-    font-family: monospace;
-    font-size: 0.8rem;
-    color: #94a3b8;
-    margin-top: 10px;
+.andon-card {
+    min-height: 0;
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-radius: 4px;
 }
